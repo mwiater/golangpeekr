@@ -60,22 +60,28 @@ func ListPackageFunctions(dir, pkgName string) {
 	}
 	sort.Strings(groupNames) // Sort the group names alphabetically.
 
-	// Print the header for the function list output.
-	header := fmt.Sprintf("\nFunctions in the %s package:", fmt.Sprintf("'%s'", pkgName))
-	helpers.TerminalColor(header, helpers.Notice)
+	if len(groupNames) > 0 {
+		// Print the header for the function list output.
+		header := fmt.Sprintf("\nFunctions in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Notice)
 
-	// Iterate over each group and print the functions contained within.
-	for _, groupName := range groupNames {
-		functions := groupedFunctions[groupName]
-		helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
-		for _, funcInfo := range functions {
-			// Print function comments and signatures with color coding.
-			helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
-			signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
-			helpers.TerminalColor(signature, helpers.Debug)
-			fmt.Println()
+		// Iterate over each group and print the functions contained within.
+		for _, groupName := range groupNames {
+			functions := groupedFunctions[groupName]
+			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+			for _, funcInfo := range functions {
+				// Print function comments and signatures with color coding.
+				helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
+				signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
+				helpers.TerminalColor(signature, helpers.Debug)
+				fmt.Println()
+			}
 		}
+	} else {
+		header := fmt.Sprintf("\nNo functions in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Error)
 	}
+
 }
 
 // ListPackageStructs prints a color-coded list of structs from the specified package.
@@ -94,34 +100,39 @@ func ListPackageStructs(dir, pkgName string) error {
 	}
 	sort.Strings(groupNames) // Sort the group names alphabetically.
 
-	// Print the header for the struct list output.
-	header := fmt.Sprintf("\nStructs in the %s package:", fmt.Sprintf("'%s'", pkgName))
-	helpers.TerminalColor(header, helpers.Notice)
+	if len(groupNames) > 0 {
+		// Print the header for the struct list output.
+		header := fmt.Sprintf("\nStructs in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Notice)
 
-	// Iterate over each group and print the structs contained within.
-	for _, groupName := range groupNames {
-		structs := structsMap[groupName]
-		if len(structs) > 0 {
-			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
-			for _, structInfo := range structs {
-				// Print struct comments and definitions with color coding.
-				if structInfo.Comment != "" {
-					comment := fmt.Sprintf("  // %s", strings.TrimSpace(structInfo.Comment))
-					helpers.TerminalColor(comment, helpers.Info)
-				}
-				structHeader := fmt.Sprintf("type %s struct {", structInfo.Name)
-				helpers.TerminalColor("  "+structHeader, helpers.Debug)
-				for _, field := range structInfo.Fields {
-					fieldStr := fmt.Sprintf("    %s %s", field.Name, field.Type)
-					helpers.TerminalColor(fieldStr, helpers.Debug)
-					if field.Comment != "" {
-						fieldComment := fmt.Sprintf("    // %s", strings.TrimSpace(field.Comment))
-						helpers.TerminalColor(fieldComment, helpers.Info)
+		// Iterate over each group and print the structs contained within.
+		for _, groupName := range groupNames {
+			structs := structsMap[groupName]
+			if len(structs) > 0 {
+				helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+				for _, structInfo := range structs {
+					// Print struct comments and definitions with color coding.
+					if structInfo.Comment != "" {
+						comment := fmt.Sprintf("  // %s", strings.TrimSpace(structInfo.Comment))
+						helpers.TerminalColor(comment, helpers.Info)
 					}
+					structHeader := fmt.Sprintf("type %s struct {", structInfo.Name)
+					helpers.TerminalColor("  "+structHeader, helpers.Debug)
+					for _, field := range structInfo.Fields {
+						fieldStr := fmt.Sprintf("    %s %s", field.Name, field.Type)
+						helpers.TerminalColor(fieldStr, helpers.Debug)
+						if field.Comment != "" {
+							fieldComment := fmt.Sprintf("    // %s", strings.TrimSpace(field.Comment))
+							helpers.TerminalColor(fieldComment, helpers.Info)
+						}
+					}
+					helpers.TerminalColor("  }\n", helpers.Debug)
 				}
-				helpers.TerminalColor("  }\n", helpers.Debug)
 			}
 		}
+	} else {
+		header := fmt.Sprintf("\nNo structs in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Error)
 	}
 
 	return nil

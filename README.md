@@ -60,40 +60,30 @@ TerminalInfo() (*Terminal, error)
 ## CLI
 
 ### Linux
-env GOOS=linux GOARCH=amd64 go build -o bin/peekr && ./bin/peekr files --help
+`env GOOS=linux GOARCH=amd64 go build -o bin/peekr && ./bin/peekr files --help`
 
 ### Windows
-env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe --help
+`env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe --help`
 
 ```
-A utitlity belt of common functions I fing useful during golang development.
+Peek under the hood
 
 Usage:
   peekr [command]
 
 Available Commands:
-  completion        Generate the autocompletion script for the specified shell
-  cpuInfo           Retrieves detailed CPU information.
-  cpuUsage          Fetches current CPU utilization statistics.
-  diskPartitions    Lists all disk partitions.
-  diskUsage         Obtains disk usage data for a given path.
-  help              Help about any command
-  hostInfo          Delivers comprehensive host system information.
-  list              List all the functions available within the 'common' package.
-  localIP           Finds an internal IPv4 address.
-  memInfo           Gathers current memory usage statistics.
-  networkInterfaces Lists all network interfaces on the host.
-  systemLoadAverage Provides the system's load average.
-  terminalInfo      Provides details about the current terminal or shell environment.
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  list        TODO: -d directory, -s structOnly, -f functionOnly
 
 Flags:
-  -h, --help   help for golangcommon
+  -h, --help   help for peekr
 
-Use "golangcommon [command] --help" for more information about a command.
+Use "peekr [command] --help" for more information about a command.
 ```
 
 
 ## Cobra CLI
 
-`go build -o bin/golangcommon && ./bin/golangcommon --help`
+`env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe list`
 

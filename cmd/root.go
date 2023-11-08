@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Matt J. Wiater
 */
 package cmd
 
@@ -11,9 +11,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "golangcommon",
-	Short: "A utitlity belt of common functions I fing useful during golang development.",
-	Long:  `A utitlity belt of common functions I fing useful during golang development.`,
+	Use:   "peekr",
+	Short: "Peek under the hood",
+	Long:  `Peek under the hood`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },

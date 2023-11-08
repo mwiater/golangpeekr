@@ -1,4 +1,4 @@
-package bad
+package helpers
 
 // Bad struct...
 type Bad struct {

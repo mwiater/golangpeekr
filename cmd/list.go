@@ -14,8 +14,8 @@ var listCmd = &cobra.Command{
 	Short: "TODO: -d directory, -s structOnly, -f functionOnly",
 	Long:  `TODO: -d directory, -s structOnly, -f functionOnly`,
 	Run: func(cmd *cobra.Command, args []string) {
-		peekr.ListPackageFunctions("./helpers")
-		peekr.ListPackageStructs("./helpers")
+		peekr.ListPackageFunctions("/home/matt/projects/golangpeekr", "helpers")
+		peekr.ListPackageStructs("/home/matt/projects/golangpeekr", "helpers")
 	},
 }
 

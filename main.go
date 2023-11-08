@@ -23,7 +23,7 @@ func main() {
 		//peekr.ListPackageFunctions("./helpers")
 		//peekr.ListPackageStructs("./helpers")
 
-		peekr.ListPackageFunctions("helpers")
-		peekr.ListPackageStructs("helpers")
+		peekr.ListPackageFunctions("/home/matt/projects/golangpeekr", "helpers")
+		peekr.ListPackageStructs("/home/matt/projects/golangpeekr", "helpers")
 	}
 }

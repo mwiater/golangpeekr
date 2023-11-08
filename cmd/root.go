@@ -35,7 +35,10 @@ func init() {
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.golangcommon.yaml)")
 
-	rootCmd.PersistentFlags().StringP("directory", "d", "", "You must specify a directory to scan.")
+	rootCmd.PersistentFlags().StringP("directory", "d", "", "Absolute path of directory to scan.")
+	rootCmd.MarkPersistentFlagRequired("directory")
+	rootCmd.PersistentFlags().StringP("package", "p", "", "Name of package to scan.")
+	rootCmd.MarkPersistentFlagRequired("package")
 }
 
 // ListAllCobraCommands prints all commands and subcommands recursively

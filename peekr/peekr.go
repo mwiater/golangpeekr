@@ -36,6 +36,78 @@ type FieldInfo struct {
 	Comment string
 }
 
+// ListPackageFunctions prints the sorted functions as specified.
+func ListPackageFunctions(pkgName string) {
+	groupedFunctions, err := PackageFunctions(pkgName)
+	if err != nil {
+		panic(err)
+	}
+
+	var groupNames []string
+	for groupName := range groupedFunctions {
+		groupNames = append(groupNames, groupName)
+	}
+	sort.Strings(groupNames)
+
+	header := fmt.Sprintf("\nFunctions in the %s package:", fmt.Sprintf("'%s'", pkgName))
+	helpers.TerminalColor(header, helpers.Notice)
+
+	for _, groupName := range groupNames {
+		functions := groupedFunctions[groupName]
+		helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+		for _, funcInfo := range functions {
+			helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
+			signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
+			helpers.TerminalColor(signature, helpers.Debug)
+			fmt.Println()
+		}
+	}
+}
+
+// ListPackageStructs formats and prints the structs obtained from PackageStructs using color-coded output.
+func ListPackageStructs(pkgName string) error {
+	structsMap, err := PackageStructs(pkgName)
+	if err != nil {
+		return err
+	}
+
+	// Sort the groups by name
+	var groupNames []string
+	for groupName := range structsMap {
+		groupNames = append(groupNames, groupName)
+	}
+	sort.Strings(groupNames)
+
+	header := fmt.Sprintf("\nStructs in the %s package:", fmt.Sprintf("'%s'", pkgName))
+	helpers.TerminalColor(header, helpers.Notice)
+
+	for _, groupName := range groupNames {
+		structs := structsMap[groupName]
+		if len(structs) > 0 {
+			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+			for _, structInfo := range structs {
+				if structInfo.Comment != "" {
+					comment := fmt.Sprintf("  // %s", strings.TrimSpace(structInfo.Comment))
+					helpers.TerminalColor(comment, helpers.Info)
+				}
+				structHeader := fmt.Sprintf("type %s struct {", structInfo.Name)
+				helpers.TerminalColor("  "+structHeader, helpers.Debug)
+				for _, field := range structInfo.Fields {
+					fieldStr := fmt.Sprintf("    %s %s", field.Name, field.Type)
+					helpers.TerminalColor(fieldStr, helpers.Debug)
+					if field.Comment != "" {
+						fieldComment := fmt.Sprintf("    // %s", strings.TrimSpace(field.Comment))
+						helpers.TerminalColor(fieldComment, helpers.Info)
+					}
+				}
+				helpers.TerminalColor("  }\n", helpers.Debug)
+			}
+		}
+	}
+
+	return nil
+}
+
 func PackageFunctions(pkgName string) (map[string][]FunctionInfo, error) {
 	fset := token.NewFileSet()
 	funcMap := make(map[string][]FunctionInfo)
@@ -77,8 +149,8 @@ func PackageFunctions(pkgName string) (map[string][]FunctionInfo, error) {
 					}
 
 					// Extract the function's parameters and return types
-					params := extractFuncParams(fn.Type.Params)
-					returns := extractFuncResults(fn.Type.Results)
+					params := ExtractFuncParams(fn.Type.Params)
+					returns := ExtractFuncResults(fn.Type.Results)
 
 					funcInfo := FunctionInfo{
 						FileName: groupName,
@@ -107,96 +179,6 @@ func PackageFunctions(pkgName string) (map[string][]FunctionInfo, error) {
 	}
 
 	return funcMap, nil
-}
-
-// extractFuncParams takes an *ast.FieldList (parameters) and returns a string representation.
-func extractFuncParams(fl *ast.FieldList) string {
-	if fl == nil {
-		return ""
-	}
-	var params []string
-	for _, field := range fl.List {
-		typeString := exprToString(field.Type)
-		if len(field.Names) > 0 {
-			for _, name := range field.Names {
-				params = append(params, fmt.Sprintf("%s %s", name, typeString))
-			}
-		} else {
-			params = append(params, typeString)
-		}
-	}
-	return strings.Join(params, ", ")
-}
-
-// extractFuncResults takes an *ast.FieldList (results) and returns a string representation.
-func extractFuncResults(fl *ast.FieldList) string {
-	if fl == nil {
-		return ""
-	}
-	var results []string
-	for _, field := range fl.List {
-		typeString := exprToString(field.Type)
-		if len(field.Names) > 0 {
-			for _, name := range field.Names {
-				results = append(results, fmt.Sprintf("%s %s", name, typeString))
-			}
-		} else {
-			results = append(results, typeString)
-		}
-	}
-	if len(results) == 1 {
-		return results[0] // Single unnamed return value
-	}
-	return "(" + strings.Join(results, ", ") + ")"
-}
-
-// exprToString takes an ast.Expr (expression) and returns its string representation.
-func exprToString(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.SelectorExpr:
-		return exprToString(t.X) + "." + t.Sel.Name
-	case *ast.StarExpr:
-		return "*" + exprToString(t.X)
-	case *ast.ArrayType:
-		return "[]" + exprToString(t.Elt)
-	case *ast.InterfaceType:
-		if t.Methods != nil && t.Methods.List != nil && len(t.Methods.List) > 0 {
-			return "interface{...}"
-		}
-		return "interface{}"
-	default:
-		return fmt.Sprintf("%#v", expr)
-	}
-}
-
-// ListPackageFunctions prints the sorted functions as specified.
-func ListPackageFunctions(pkgName string) {
-	groupedFunctions, err := PackageFunctions(pkgName)
-	if err != nil {
-		panic(err)
-	}
-
-	var groupNames []string
-	for groupName := range groupedFunctions {
-		groupNames = append(groupNames, groupName)
-	}
-	sort.Strings(groupNames)
-
-	header := fmt.Sprintf("\nFunctions in the %s package:", fmt.Sprintf("'%s'", pkgName))
-	helpers.TerminalColor(header, helpers.Notice)
-
-	for _, groupName := range groupNames {
-		functions := groupedFunctions[groupName]
-		helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
-		for _, funcInfo := range functions {
-			helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
-			signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
-			helpers.TerminalColor(signature, helpers.Debug)
-			fmt.Println()
-		}
-	}
 }
 
 // PackageStructs gathers data about structs in the specified package.
@@ -249,7 +231,7 @@ func PackageStructs(pkgName string) (map[string][]StructInfo, error) {
 
 				structFields := make([]FieldInfo, 0)
 				for _, field := range structType.Fields.List {
-					fieldType := exprToString(field.Type)
+					fieldType := ExprToString(field.Type)
 					var fieldComment string
 					if field.Doc != nil {
 						fieldComment = field.Doc.Text()
@@ -281,61 +263,4 @@ func PackageStructs(pkgName string) (map[string][]StructInfo, error) {
 	}
 
 	return structsMap, nil
-}
-
-// ListPackageStructs formats and prints the structs obtained from PackageStructs using color-coded output.
-func ListPackageStructs(pkgName string) error {
-	structsMap, err := PackageStructs(pkgName)
-	if err != nil {
-		return err
-	}
-
-	// Sort the groups by name
-	var groupNames []string
-	for groupName := range structsMap {
-		groupNames = append(groupNames, groupName)
-	}
-	sort.Strings(groupNames)
-
-	header := fmt.Sprintf("\nStructs in the %s package:", fmt.Sprintf("'%s'", pkgName))
-	helpers.TerminalColor(header, helpers.Notice)
-
-	for _, groupName := range groupNames {
-		structs := structsMap[groupName]
-		if len(structs) > 0 {
-			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
-			for _, structInfo := range structs {
-				if structInfo.Comment != "" {
-					comment := fmt.Sprintf("  // %s", strings.TrimSpace(structInfo.Comment))
-					helpers.TerminalColor(comment, helpers.Info)
-				}
-				structHeader := fmt.Sprintf("type %s struct {", structInfo.Name)
-				helpers.TerminalColor("  "+structHeader, helpers.Debug)
-				for _, field := range structInfo.Fields {
-					fieldStr := fmt.Sprintf("    %s %s", field.Name, field.Type)
-					helpers.TerminalColor(fieldStr, helpers.Debug)
-					if field.Comment != "" {
-						fieldComment := fmt.Sprintf("    // %s", strings.TrimSpace(field.Comment))
-						helpers.TerminalColor(fieldComment, helpers.Info)
-					}
-				}
-				helpers.TerminalColor("  }\n", helpers.Debug)
-			}
-		}
-	}
-
-	return nil
-}
-
-// Commentify takes a string and returns it as a commented block of text,
-// without adding comment syntax to the final newline if it exists.
-func Commentify(str string) string {
-	lines := strings.Split(str, "\n")
-	for i, line := range lines {
-		if i == len(lines)-1 && line == "" {
-			continue // Skip the empty last line
-		}
-		lines[i] = "  // " + line
-	}
-	return strings.Join(lines, "\n")
 }

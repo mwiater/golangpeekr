@@ -10,8 +10,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mwiater/peekr/config"
 	"github.com/mwiater/peekr/helpers"
 )
+
+var Logger = config.GetLogger()
 
 // FunctionInfo holds metadata about a function within a Go source file.
 // It includes the file name, function signature, associated comments,
@@ -46,7 +49,8 @@ func ListPackageFunctions(dir, pkgName string) {
 	// Retrieve function information from the specified package.
 	groupedFunctions, err := PackageFunctions(dir, pkgName)
 	if err != nil {
-		panic(err)
+		Logger.Error(err.Error())
+		os.Exit(1)
 	}
 
 	// Prepare a sorted list of group names (file names) for output.

@@ -65,7 +65,7 @@ func ClearTerminal() error {
 func TerminalInfo() (*Terminal, error) {
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
-		return nil, fmt.Errorf("error getting terminal size: %w", err)
+		return nil, fmt.Errorf("TerminalInfo(): Error getting terminal size: %w", err)
 	}
 
 	outputType := "Not a terminal"
@@ -75,11 +75,11 @@ func TerminalInfo() (*Terminal, error) {
 
 	colorsOutput, err := exec.Command("tput", "colors").Output()
 	if err != nil {
-		return nil, fmt.Errorf("error getting number of supported colors: %w", err)
+		return nil, fmt.Errorf("TerminalInfo(): Error getting number of supported colors: %w", err)
 	}
 	numberOfSupportedColors, err := strconv.Atoi(strings.TrimSpace(string(colorsOutput)))
 	if err != nil {
-		return nil, fmt.Errorf("error converting number of colors to int: %w", err)
+		return nil, fmt.Errorf("TerminalInfo(): Error converting number of colors to int: %w", err)
 	}
 
 	terminalInfo := Terminal{

@@ -89,3 +89,7 @@ Use "peekr [command] --help" for more information about a command.
 `env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe list`
 
 `go build -o bin/peekr && ./bin/peekr list --help`
+
+go build -o bin/peekr && ./bin/peekr list -d "/home/matt/projects/golangpeekr" -p "helpers"
+
+"/home/matt/projects/golangpeekr", "helpers"

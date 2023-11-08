@@ -7,7 +7,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var Directory string
+var Package string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -24,21 +28,20 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		// TO DO
 		os.Exit(1)
 	}
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.golangcommon.yaml)")
-
-	rootCmd.PersistentFlags().StringP("directory", "d", "", "Absolute path of directory to scan.")
+	// Global flags
+	rootCmd.PersistentFlags().StringVarP(&Directory, "directory", "d", "", "Absolute path of directory to scan.")
 	rootCmd.MarkPersistentFlagRequired("directory")
-	rootCmd.PersistentFlags().StringP("package", "p", "", "Name of package to scan.")
+	viper.BindPFlag("directory", rootCmd.PersistentFlags().Lookup("directory"))
+
+	rootCmd.PersistentFlags().StringVarP(&Package, "package", "p", "", "Name of package to scan.")
 	rootCmd.MarkPersistentFlagRequired("package")
+	viper.BindPFlag("package", rootCmd.PersistentFlags().Lookup("package"))
 }
 
 // ListAllCobraCommands prints all commands and subcommands recursively

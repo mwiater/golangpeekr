@@ -81,7 +81,6 @@ func ListPackageFunctions(dir, pkgName string) {
 		header := fmt.Sprintf("\nNo functions in the %s package:", fmt.Sprintf("'%s'", pkgName))
 		helpers.TerminalColor(header, helpers.Error)
 	}
-
 }
 
 // ListPackageStructs prints a color-coded list of structs from the specified package.

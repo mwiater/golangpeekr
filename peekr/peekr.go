@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -18,15 +18,15 @@ type FunctionInfo struct {
 	FileName string
 	Function string
 	Comments string
-	Params   string // Add a field for the parameters
-	Returns  string // Add a field for the return types
+	Params   string
+	Returns  string
 }
 
 // StructInfo holds information about a struct and its fields.
 type StructInfo struct {
-	FileName string
-	Struct   string
-	Fields   []FieldInfo
+	Name    string
+	Fields  []FieldInfo
+	Comment string
 }
 
 // FieldInfo holds information about a field within a struct.
@@ -36,27 +36,38 @@ type FieldInfo struct {
 	Comment string
 }
 
-// PackageFunctions lists and sorts the functions in a package, excluding peekr.go and peekr_test.go.
-func PackageFunctions(dir string) (map[string][]FunctionInfo, error) {
+func PackageFunctions(pkgName string) (map[string][]FunctionInfo, error) {
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, dir, nil, parser.ParseComments)
-	if err != nil {
-		return nil, err
-	}
-
 	funcMap := make(map[string][]FunctionInfo)
 
-	for _, pkg := range pkgs {
-		for filePath, f := range pkg.Files {
-			// Skip peekr.go and peekr_test.go
-			fileName := filepath.Base(filePath)
-			if fileName == "peekr.go" || fileName == "peekr_test.go" {
-				continue
+	// Walk the directory tree recursively
+	err := filepath.Walk("./", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and test files
+		if info.IsDir() || strings.HasSuffix(info.Name(), "_test.go") {
+			return nil
+		}
+
+		// Process only Go files
+		if strings.HasSuffix(info.Name(), ".go") {
+			// Parse the Go source file
+			f, parseErr := parser.ParseFile(fset, path, nil, parser.ParseComments)
+			if parseErr != nil {
+				return parseErr
+			}
+
+			// Check if the file's package name matches the desired package
+			if f.Name.Name != pkgName {
+				return nil
 			}
 
 			// Use the file name without the extension for grouping
-			groupName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+			groupName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
 
+			// Process the file's declarations
 			for _, decl := range f.Decls {
 				if fn, ok := decl.(*ast.FuncDecl); ok && fn.Name.IsExported() {
 					// Get the comments associated with the function
@@ -76,10 +87,16 @@ func PackageFunctions(dir string) (map[string][]FunctionInfo, error) {
 						Params:   params,
 						Returns:  returns,
 					}
-					funcMap[groupName] = append(funcMap[groupName], funcInfo)
+					funcMap[path] = append(funcMap[path], funcInfo)
 				}
 			}
 		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Sort the functions within each group alphabetically
@@ -154,9 +171,9 @@ func exprToString(expr ast.Expr) string {
 	}
 }
 
-// PrintSortedFunctions prints the sorted functions as specified.
-func ListPackageFunctions(dir string) {
-	groupedFunctions, err := PackageFunctions(dir)
+// ListPackageFunctions prints the sorted functions as specified.
+func ListPackageFunctions(pkgName string) {
+	groupedFunctions, err := PackageFunctions(pkgName)
 	if err != nil {
 		panic(err)
 	}
@@ -167,15 +184,12 @@ func ListPackageFunctions(dir string) {
 	}
 	sort.Strings(groupNames)
 
-	cleanDir := path.Clean(dir)
-	lastPart := path.Base(cleanDir)
-
-	header := fmt.Sprintf("\nFunctions in the %s package:\n", fmt.Sprintf("'%s'", lastPart))
+	header := fmt.Sprintf("\nFunctions in the %s package:", fmt.Sprintf("'%s'", pkgName))
 	helpers.TerminalColor(header, helpers.Notice)
 
 	for _, groupName := range groupNames {
 		functions := groupedFunctions[groupName]
-		helpers.TerminalColor("[ "+groupName+" ]\n", helpers.Info)
+		helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
 		for _, funcInfo := range functions {
 			helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
 			signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
@@ -185,73 +199,127 @@ func ListPackageFunctions(dir string) {
 	}
 }
 
-// ListPackageStructs lists and prints the structs in a package, excluding peekr.go and peekr_test.go.
-func ListPackageStructs(dir string) error {
+// PackageStructs gathers data about structs in the specified package.
+func PackageStructs(pkgName string) (map[string][]StructInfo, error) {
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, dir, nil, parser.ParseComments)
+	structsMap := make(map[string][]StructInfo)
+
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories, non-Go files, and test files
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".go") || strings.HasSuffix(info.Name(), "_test.go") {
+			return nil
+		}
+
+		// Parse the Go source file
+		f, parseErr := parser.ParseFile(fset, path, nil, parser.ParseComments)
+		if parseErr != nil {
+			return parseErr
+		}
+
+		// Check if the file's package name matches the desired package
+		if f.Name.Name != pkgName {
+			return nil
+		}
+
+		for _, decl := range f.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+
+				structType, ok := typeSpec.Type.(*ast.StructType)
+				if !ok || !typeSpec.Name.IsExported() {
+					continue
+				}
+
+				var structComment string
+				if genDecl.Doc != nil {
+					structComment = genDecl.Doc.Text()
+				}
+
+				structFields := make([]FieldInfo, 0)
+				for _, field := range structType.Fields.List {
+					fieldType := exprToString(field.Type)
+					var fieldComment string
+					if field.Doc != nil {
+						fieldComment = field.Doc.Text()
+					}
+
+					for _, fieldName := range field.Names {
+						structFields = append(structFields, FieldInfo{
+							Name:    fieldName.Name,
+							Type:    fieldType,
+							Comment: fieldComment,
+						})
+					}
+				}
+
+				structInfo := StructInfo{
+					Name:    typeSpec.Name.Name,
+					Fields:  structFields,
+					Comment: structComment,
+				}
+				structsMap[path] = append(structsMap[path], structInfo)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return structsMap, nil
+}
+
+// ListPackageStructs formats and prints the structs obtained from PackageStructs using color-coded output.
+func ListPackageStructs(pkgName string) error {
+	structsMap, err := PackageStructs(pkgName)
 	if err != nil {
 		return err
 	}
 
-	cleanDir := path.Clean(dir)
-	lastPart := path.Base(cleanDir)
+	// Sort the groups by name
+	var groupNames []string
+	for groupName := range structsMap {
+		groupNames = append(groupNames, groupName)
+	}
+	sort.Strings(groupNames)
 
-	header := fmt.Sprintf("\nStructs in the %s package:\n", fmt.Sprintf("'%s'", lastPart))
+	header := fmt.Sprintf("\nStructs in the %s package:", fmt.Sprintf("'%s'", pkgName))
 	helpers.TerminalColor(header, helpers.Notice)
 
-	for _, pkg := range pkgs {
-		for filePath, f := range pkg.Files {
-			// Skip peekr.go and peekr_test.go
-			fileName := filepath.Base(filePath)
-			if fileName == "peekr.go" || fileName == "peekr_test.go" {
-				continue
-			}
-
-			// Use the file name without the extension for grouping
-			groupName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-			structsPrinted := false
-
-			for _, decl := range f.Decls {
-				genDecl, ok := decl.(*ast.GenDecl)
-				if !ok || genDecl.Tok != token.TYPE {
-					continue
+	for _, groupName := range groupNames {
+		structs := structsMap[groupName]
+		if len(structs) > 0 {
+			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+			for _, structInfo := range structs {
+				if structInfo.Comment != "" {
+					comment := fmt.Sprintf("  // %s", strings.TrimSpace(structInfo.Comment))
+					helpers.TerminalColor(comment, helpers.Info)
 				}
-
-				for _, spec := range genDecl.Specs {
-					typeSpec, ok := spec.(*ast.TypeSpec)
-					if !ok {
-						continue
+				structHeader := fmt.Sprintf("type %s struct {", structInfo.Name)
+				helpers.TerminalColor("  "+structHeader, helpers.Debug)
+				for _, field := range structInfo.Fields {
+					fieldStr := fmt.Sprintf("    %s %s", field.Name, field.Type)
+					helpers.TerminalColor(fieldStr, helpers.Debug)
+					if field.Comment != "" {
+						fieldComment := fmt.Sprintf("    // %s", strings.TrimSpace(field.Comment))
+						helpers.TerminalColor(fieldComment, helpers.Info)
 					}
-
-					structType, ok := typeSpec.Type.(*ast.StructType)
-					if !ok || !typeSpec.Name.IsExported() {
-						continue
-					}
-
-					if !structsPrinted {
-						helpers.TerminalColor("[ "+groupName+" ]\n", helpers.Info)
-						structsPrinted = true
-					}
-
-					var structComment string
-					if genDecl.Doc != nil {
-						structComment = Commentify(genDecl.Doc.Text())
-					}
-
-					if structComment != "" {
-						helpers.TerminalColor("  "+strings.TrimSpace(structComment), helpers.Info)
-					}
-					//helpers.TerminalColor("  Struct: "+strings.TrimSpace(typeSpec.Name.Name), helpers.Alert)
-
-					for _, field := range structType.Fields.List {
-						fieldType := exprToString(field.Type)
-						for _, fieldName := range field.Names {
-							field := fmt.Sprintf("%s %s\n", fieldName.Name, fieldType)
-							helpers.TerminalColor("  "+strings.TrimSpace(field), helpers.Debug)
-						}
-					}
-					fmt.Println()
 				}
+				helpers.TerminalColor("  }\n", helpers.Debug)
 			}
 		}
 	}

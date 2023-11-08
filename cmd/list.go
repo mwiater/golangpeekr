@@ -30,5 +30,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	listCmd.Flags().BoolP("functionsOnly", "f", false, "Only list package functions.")
+	listCmd.Flags().BoolP("structsOnly", "s", false, "Only list package structs.")
 }

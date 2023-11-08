@@ -19,7 +19,11 @@ func main() {
 		cmd.Execute()
 	} else {
 		helpers.ClearTerminal()
-		peekr.ListPackageFunctions("./helpers")
-		peekr.ListPackageStructs("./helpers")
+
+		//peekr.ListPackageFunctions("./helpers")
+		//peekr.ListPackageStructs("./helpers")
+
+		peekr.ListPackageFunctions("helpers")
+		peekr.ListPackageStructs("helpers")
 	}
 }

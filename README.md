@@ -1,4 +1,4 @@
-# golangcommon
+# golangpeekr
 
 A repository for common, reusable functions
 
@@ -59,15 +59,17 @@ TerminalInfo() (*Terminal, error)
 
 ## CLI
 
-go build -o bin/golangcommon && ./bin/golangcommon files --help
+### Linux
+env GOOS=linux GOARCH=amd64 go build -o bin/peekr && ./bin/peekr files --help
 
-env GOOS=windows GOARCH=amd64 go build -o bin\golangcommon.exe && bin\golangcommon.exe --help
+### Windows
+env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe --help
 
 ```
 A utitlity belt of common functions I fing useful during golang development.
 
 Usage:
-  golangcommon [command]
+  peekr [command]
 
 Available Commands:
   completion        Generate the autocompletion script for the specified shell
@@ -90,24 +92,8 @@ Flags:
 Use "golangcommon [command] --help" for more information about a command.
 ```
 
-## Demo
-
-Runs through the current common Functions: `go run demo\demo.go`
 
 ## Cobra CLI
 
 `go build -o bin/golangcommon && ./bin/golangcommon --help`
 
-## Godoc
-
-`go install golang.org/x/tools/cmd/godoc@latest`
-
-`godoc -play -http={ip-address}:6060`, e.g.: `godoc -play -http=192.168.221.244:6060`
-
-## Testing
-
-This is pretty sparse at the moment, but...
-
-`go install gotest.tools/gotestsum@latest`
-
-`go clean -testcache && gotestsum --format testname`

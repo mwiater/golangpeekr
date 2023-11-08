@@ -1,4 +1,4 @@
-package common
+package peekr
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/mwiater/peekr/helpers"
 )
 
 // FunctionInfo holds information about a function and its associated comments.
@@ -20,7 +22,21 @@ type FunctionInfo struct {
 	Returns  string // Add a field for the return types
 }
 
-// PackageFunctions lists and sorts the functions in a package, excluding common.go and common_test.go.
+// StructInfo holds information about a struct and its fields.
+type StructInfo struct {
+	FileName string
+	Struct   string
+	Fields   []FieldInfo
+}
+
+// FieldInfo holds information about a field within a struct.
+type FieldInfo struct {
+	Name    string
+	Type    string
+	Comment string
+}
+
+// PackageFunctions lists and sorts the functions in a package, excluding peekr.go and peekr_test.go.
 func PackageFunctions(dir string) (map[string][]FunctionInfo, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, nil, parser.ParseComments)
@@ -32,9 +48,9 @@ func PackageFunctions(dir string) (map[string][]FunctionInfo, error) {
 
 	for _, pkg := range pkgs {
 		for filePath, f := range pkg.Files {
-			// Skip common.go and common_test.go
+			// Skip peekr.go and peekr_test.go
 			fileName := filepath.Base(filePath)
-			if fileName == "common.go" || fileName == "common_test.go" {
+			if fileName == "peekr.go" || fileName == "peekr_test.go" {
 				continue
 			}
 
@@ -154,19 +170,93 @@ func ListPackageFunctions(dir string) {
 	cleanDir := path.Clean(dir)
 	lastPart := path.Base(cleanDir)
 
-	header := fmt.Sprintf("Functions in the %s package:", fmt.Sprintf("'%s'", lastPart))
-	TerminalColor(header, Notice)
+	header := fmt.Sprintf("\nFunctions in the %s package:\n", fmt.Sprintf("'%s'", lastPart))
+	helpers.TerminalColor(header, helpers.Notice)
 
 	for _, groupName := range groupNames {
 		functions := groupedFunctions[groupName]
-		fmt.Println()
+		helpers.TerminalColor("[ "+groupName+" ]\n", helpers.Info)
 		for _, funcInfo := range functions {
-			TerminalColor(strings.TrimSpace(funcInfo.Comments), Info)
-			signature := fmt.Sprintf("%s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
-			TerminalColor(signature, Debug)
+			helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
+			signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
+			helpers.TerminalColor(signature, helpers.Debug)
 			fmt.Println()
 		}
 	}
+}
+
+// ListPackageStructs lists and prints the structs in a package, excluding peekr.go and peekr_test.go.
+func ListPackageStructs(dir string) error {
+	fset := token.NewFileSet()
+	pkgs, err := parser.ParseDir(fset, dir, nil, parser.ParseComments)
+	if err != nil {
+		return err
+	}
+
+	cleanDir := path.Clean(dir)
+	lastPart := path.Base(cleanDir)
+
+	header := fmt.Sprintf("\nStructs in the %s package:\n", fmt.Sprintf("'%s'", lastPart))
+	helpers.TerminalColor(header, helpers.Notice)
+
+	for _, pkg := range pkgs {
+		for filePath, f := range pkg.Files {
+			// Skip peekr.go and peekr_test.go
+			fileName := filepath.Base(filePath)
+			if fileName == "peekr.go" || fileName == "peekr_test.go" {
+				continue
+			}
+
+			// Use the file name without the extension for grouping
+			groupName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+			structsPrinted := false
+
+			for _, decl := range f.Decls {
+				genDecl, ok := decl.(*ast.GenDecl)
+				if !ok || genDecl.Tok != token.TYPE {
+					continue
+				}
+
+				for _, spec := range genDecl.Specs {
+					typeSpec, ok := spec.(*ast.TypeSpec)
+					if !ok {
+						continue
+					}
+
+					structType, ok := typeSpec.Type.(*ast.StructType)
+					if !ok || !typeSpec.Name.IsExported() {
+						continue
+					}
+
+					if !structsPrinted {
+						helpers.TerminalColor("[ "+groupName+" ]\n", helpers.Info)
+						structsPrinted = true
+					}
+
+					var structComment string
+					if genDecl.Doc != nil {
+						structComment = Commentify(genDecl.Doc.Text())
+					}
+
+					if structComment != "" {
+						helpers.TerminalColor("  "+strings.TrimSpace(structComment), helpers.Info)
+					}
+					//helpers.TerminalColor("  Struct: "+strings.TrimSpace(typeSpec.Name.Name), helpers.Alert)
+
+					for _, field := range structType.Fields.List {
+						fieldType := exprToString(field.Type)
+						for _, fieldName := range field.Names {
+							field := fmt.Sprintf("%s %s\n", fieldName.Name, fieldType)
+							helpers.TerminalColor("  "+strings.TrimSpace(field), helpers.Debug)
+						}
+					}
+					fmt.Println()
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // Commentify takes a string and returns it as a commented block of text,
@@ -177,7 +267,7 @@ func Commentify(str string) string {
 		if i == len(lines)-1 && line == "" {
 			continue // Skip the empty last line
 		}
-		lines[i] = "// " + line
+		lines[i] = "  // " + line
 	}
 	return strings.Join(lines, "\n")
 }

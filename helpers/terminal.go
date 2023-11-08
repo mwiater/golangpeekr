@@ -1,5 +1,5 @@
-// Package common provides utilities for interacting with the terminal and formatting output.
-package common
+// Package helpers provides utilities for interacting with the terminal and formatting output.
+package helpers
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"golang.org/x/term"
 )
 
+// Terminal struct holds information about the user's terminal environment.
 type Terminal struct {
 	Height                  int
 	Width                   int

@@ -86,7 +86,7 @@ Use "peekr [command] --help" for more information about a command.
 
 ## Cobra CLI
 
-`env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe list`
+`env GOOS=windows GOARCH=amd64 go build -o bin\peekr.exe && bin\peekr.exe list -d "/home/matt/projects/golangpeekr" -p "helpers"`
 
 `go build -o bin/peekr && ./bin/peekr list --help`
 

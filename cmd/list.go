@@ -9,14 +9,28 @@ import (
 	"github.com/spf13/viper"
 )
 
+var FunctionsOnly bool
+var StructsOnly bool
+
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "TODO: -d directory, -s structOnly, -f functionOnly",
 	Long:  `TODO: -d directory, -s structOnly, -f functionOnly`,
 	Run: func(cmd *cobra.Command, args []string) {
-		peekr.ListPackageFunctions(viper.GetString("directory"), viper.GetString("package"))
-		peekr.ListPackageStructs(viper.GetString("directory"), viper.GetString("package"))
+
+		dir := viper.GetString("directory")
+		pkg := viper.GetString("package")
+
+		// Call ListPackageFunctions if FunctionsOnly is true or if neither FunctionsOnly nor StructsOnly is true.
+		if FunctionsOnly || (!FunctionsOnly && !StructsOnly) {
+			peekr.ListPackageFunctions(dir, pkg)
+		}
+
+		// Call ListPackageStructs if StructsOnly is true or if neither FunctionsOnly nor StructsOnly is true.
+		if StructsOnly || (!FunctionsOnly && !StructsOnly) {
+			peekr.ListPackageStructs(dir, pkg)
+		}
 	},
 }
 
@@ -24,6 +38,9 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 
 	// Flags for List command
-	listCmd.Flags().BoolP("functionsOnly", "f", false, "Only list package functions.")
-	listCmd.Flags().BoolP("structsOnly", "s", false, "Only list package structs.")
+	listCmd.Flags().BoolVarP(&FunctionsOnly, "functions", "f", false, "Only list package functions.")
+	viper.BindPFlag("functions", rootCmd.PersistentFlags().Lookup("functions"))
+
+	listCmd.Flags().BoolVarP(&StructsOnly, "structs", "s", false, "Only list package structs.")
+	viper.BindPFlag("structs", rootCmd.PersistentFlags().Lookup("structs"))
 }

@@ -16,136 +16,125 @@ import (
 
 var Logger = config.GetLogger()
 
-// Info is a common interface for items that can be printed by commonOutput.
-type Info interface {
-	GetFileName() string
-}
-
-// Implement the interface for FunctionInfo.
-func (fi FunctionInfo) GetFileName() string {
-	return fi.FileName
-}
-
-// Implement the interface for StructInfo (assuming similar fields and formatting needs).
-func (si StructInfo) GetFileName() string {
-	return si.Name // Assuming StructInfo has a Name field for the file name
-}
-
 // FunctionInfo holds metadata about a function within a Go source file.
 // It includes the file name, function signature, associated comments,
 // parameter list, and return types.
 type FunctionInfo struct {
-	FileName string
-	Function string
-	Comments string
-	Params   string
-	Returns  string
+	FileName string // Name of the file where the function is defined
+	Function string // Name of the function
+	Comments string // Comments associated with the function
+	Params   string // List of parameters in the function signature
+	Returns  string // Return types of the function
 }
 
 // StructInfo holds metadata about a struct type within a Go source file.
 // It includes the struct name, slice of its fields, and associated comments.
 type StructInfo struct {
-	Name     string
-	FileName string
-	Fields   []FieldInfo
-	Comment  string
+	Name    string      // Name of the struct
+	Fields  []FieldInfo // Slice of FieldInfo representing each field in the struct
+	Comment string      // Comments associated with the struct
 }
 
 // FieldInfo holds metadata about a field within a struct.
 // It includes the field name, field type, and associated comments.
 type FieldInfo struct {
-	Name    string
-	Type    string
-	Comment string
-}
-
-// commonOutput handles the shared output logic.
-func commonOutput(pkgName string, infoMap map[string][]Info, infoType string) {
-	var groupNames []string
-	for groupName := range infoMap {
-		groupNames = append(groupNames, groupName)
-	}
-	sort.Strings(groupNames)
-
-	if len(groupNames) > 0 {
-		header := fmt.Sprintf("\n%s in the %s package:", infoType, fmt.Sprintf("'%s'", pkgName))
-		helpers.TerminalColor(header, helpers.Info)
-		for _, groupName := range groupNames {
-			infos := infoMap[groupName]
-			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Cyan)
-			for _, info := range infos {
-				switch v := info.(type) {
-				case FunctionInfo:
-					helpers.TerminalColor(v.Comments, helpers.Cyan)
-					signature := fmt.Sprintf("  %s(%s) %s", v.Function, v.Params, v.Returns)
-					helpers.TerminalColor(signature, helpers.Debug)
-				case StructInfo:
-					helpers.TerminalColor(v.Comment, helpers.Cyan)
-
-					maxLength := 0
-					for _, field := range v.Fields {
-						if len(field.Name) > maxLength {
-							maxLength = len(field.Name)
-						}
-					}
-
-					for _, field := range v.Fields {
-						formattedField := fmt.Sprintf("  %-*s  %s", maxLength+2, field.Name, field.Type)
-						helpers.TerminalColor(formattedField, helpers.Debug)
-					}
-
-				default:
-					fmt.Println("Unknown type")
-				}
-				fmt.Println()
-			}
-		}
-	} else {
-		header := fmt.Sprintf("\nNo %s in the %s package:", infoType, fmt.Sprintf("'%s'", pkgName))
-		helpers.TerminalColor(header, helpers.Error)
-	}
+	Name    string // Name of the field
+	Type    string // Type of the field
+	Comment string // Comments associated with the field
 }
 
 // ListPackageFunctions prints a color-coded list of functions from the specified package.
 // It retrieves function metadata using PackageFunctions and formats the output.
 func ListPackageFunctions(dir, pkgName string) {
-	functionMap, err := PackageFunctions(dir, pkgName)
+	// Retrieve function information from the specified package.
+	groupedFunctions, err := PackageFunctions(dir, pkgName)
 	if err != nil {
 		Logger.Error(err.Error())
 		os.Exit(1)
 	}
 
-	infoMap := make(map[string][]Info)
-	for k, v := range functionMap {
-		var infos []Info
-		for _, fi := range v {
-			infos = append(infos, fi)
-		}
-		infoMap[k] = infos
+	// Prepare a sorted list of group names (file names) for output.
+	var groupNames []string
+	for groupName := range groupedFunctions {
+		groupNames = append(groupNames, groupName)
 	}
+	sort.Strings(groupNames) // Sort the group names alphabetically.
 
-	commonOutput(pkgName, infoMap, "Functions")
+	if len(groupNames) > 0 {
+		// Print the header for the function list output.
+		header := fmt.Sprintf("\nFunctions in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Notice)
+
+		// Iterate over each group and print the functions contained within.
+		for _, groupName := range groupNames {
+			functions := groupedFunctions[groupName]
+			helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+			for _, funcInfo := range functions {
+				// Print function comments and signatures with color coding.
+				helpers.TerminalColor("  "+strings.TrimSpace(funcInfo.Comments), helpers.Info)
+				signature := fmt.Sprintf("  %s(%s) %s", funcInfo.Function, funcInfo.Params, funcInfo.Returns)
+				helpers.TerminalColor(signature, helpers.Debug)
+				fmt.Println()
+			}
+		}
+	} else {
+		header := fmt.Sprintf("\nNo functions in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Error)
+	}
 }
 
 // ListPackageStructs prints a color-coded list of structs from the specified package.
 // It retrieves struct metadata using PackageStructs and formats the output.
-func ListPackageStructs(dir, pkgName string) {
+func ListPackageStructs(dir, pkgName string) error {
+	// Retrieve struct information from the specified package.
 	structsMap, err := PackageStructs(dir, pkgName)
 	if err != nil {
-		Logger.Error(err.Error())
-		os.Exit(1)
+		return err
 	}
 
-	infoMap := make(map[string][]Info)
-	for k, v := range structsMap {
-		var infos []Info
-		for _, si := range v {
-			infos = append(infos, si)
+	// Sort the group names (file names) for output.
+	var groupNames []string
+	for groupName := range structsMap {
+		groupNames = append(groupNames, groupName)
+	}
+	sort.Strings(groupNames) // Sort the group names alphabetically.
+
+	if len(groupNames) > 0 {
+		// Print the header for the struct list output.
+		header := fmt.Sprintf("\nStructs in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Notice)
+
+		// Iterate over each group and print the structs contained within.
+		for _, groupName := range groupNames {
+			structs := structsMap[groupName]
+			if len(structs) > 0 {
+				helpers.TerminalColor("\nFile: "+groupName+"\n", helpers.Info)
+				for _, structInfo := range structs {
+					// Print struct comments and definitions with color coding.
+					if structInfo.Comment != "" {
+						comment := fmt.Sprintf("  // %s", strings.TrimSpace(structInfo.Comment))
+						helpers.TerminalColor(comment, helpers.Info)
+					}
+					structHeader := fmt.Sprintf("type %s struct {", structInfo.Name)
+					helpers.TerminalColor("  "+structHeader, helpers.Debug)
+					for _, field := range structInfo.Fields {
+						fieldStr := fmt.Sprintf("    %s %s", field.Name, field.Type)
+						helpers.TerminalColor(fieldStr, helpers.Debug)
+						if field.Comment != "" {
+							fieldComment := fmt.Sprintf("    // %s", strings.TrimSpace(field.Comment))
+							helpers.TerminalColor(fieldComment, helpers.Info)
+						}
+					}
+					helpers.TerminalColor("  }\n", helpers.Debug)
+				}
+			}
 		}
-		infoMap[k] = infos
+	} else {
+		header := fmt.Sprintf("\nNo structs in the %s package:", fmt.Sprintf("'%s'", pkgName))
+		helpers.TerminalColor(header, helpers.Error)
 	}
 
-	commonOutput(pkgName, infoMap, "Structs")
+	return nil
 }
 
 // PackageFunctions retrieves a map of FunctionInfo slices indexed by file path.
@@ -276,7 +265,7 @@ func PackageStructs(dir, pkgName string) (map[string][]StructInfo, error) {
 				// Retrieve documentation comments for the struct, if any.
 				var structComment string
 				if genDecl.Doc != nil {
-					structComment = Commentify(genDecl.Doc.Text())
+					structComment = genDecl.Doc.Text()
 				}
 
 				// Collect information about fields within the struct.

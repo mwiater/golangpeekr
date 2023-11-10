@@ -35,17 +35,27 @@ const (
 	Notice
 	Info
 	Debug
+	LightPurple
+	Teal
+	DarkGreen
+	Brown
+	Cyan
 )
 
 // colorMap maps error levels to their respective ANSI color codes
 var colorMap = map[ErrorLevel]string{
-	Alert:    "\033[38;5;201m", // Magenta
-	Critical: "\033[38;5;214m", // Orange
-	Error:    "\033[38;5;196m", // Light Red
-	Warn:     "\033[38;5;226m", // Yellow
-	Notice:   "\033[38;5;117m", // Light Blue
-	Info:     "\033[38;5;250m", // Gray
-	Debug:    "\033[38;5;120m", // Light Green
+	Alert:       "\033[38;5;201m", // Magenta
+	Critical:    "\033[38;5;214m", // Orange
+	Error:       "\033[38;5;196m", // Light Red
+	Warn:        "\033[38;5;226m", // Yellow
+	Notice:      "\033[38;5;117m", // Light Blue
+	Info:        "\033[38;5;250m", // Gray
+	Debug:       "\033[38;5;120m", // Light Green
+	LightPurple: "\033[38;5;141m", // Light Purple
+	Teal:        "\033[38;5;49m",  // Teal
+	DarkGreen:   "\033[38;5;34m",  // Dark Green
+	Brown:       "\033[38;5;130m", // Brown
+	Cyan:        "\033[38;5;51m",  // Cyan
 }
 
 // ClearTerminal clears the terminal screen based on the operating system.

@@ -90,5 +90,7 @@ func Commentify(str string) string {
 		}
 		lines[i] = "  // " + line
 	}
-	return strings.Join(lines, "\n")
+
+	formattedComments := strings.Join(lines, "\n")
+	return strings.Trim(formattedComments, "\n")
 }

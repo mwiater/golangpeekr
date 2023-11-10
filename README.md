@@ -93,3 +93,10 @@ Use "peekr [command] --help" for more information about a command.
 go build -o bin/peekr && ./bin/peekr list -d "/home/matt/projects/golangpeekr" -p "helpers"
 
 "/home/matt/projects/golangpeekr", "helpers"
+
+go build -o bin/peekr && ./bin/peekr list -f -d "/home/matt/projects/golangpeekr" -p "helpers"
+go build -o bin/peekr && ./bin/peekr list -s -d "/home/matt/projects/golangpeekr" -p "helpers"
+
+## Tests
+
+`gotestsum --format=testname`

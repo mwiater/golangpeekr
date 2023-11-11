@@ -17,10 +17,8 @@ var Package string
 var rootCmd = &cobra.Command{
 	Use:   "peekr",
 	Short: "Peek under the hood",
-	Long:  `Peek under the hood`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Long:  `The Peekr command by itself doesn't do anything at the moment. Please
+see the Peekr list subcommand via: 'peekr list --help'`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

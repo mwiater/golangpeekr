@@ -15,10 +15,12 @@ var StructsOnly bool
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "TODO: -d directory, -s structOnly, -f functionOnly",
-	Long:  `TODO: -d directory, -s structOnly, -f functionOnly`,
-	Run: func(cmd *cobra.Command, args []string) {
-
+	Short: "List the functions and structs within a package.",
+	Long:  `Peer into the source code for a high-level view of how a package
+is constructed. By default, the 'list' command will print both
+functions and structs in the specified package. You can filter
+out one or the other by specifying '-s' and '-f' flags.`,
+  Run: func(cmd *cobra.Command, args []string) {
 		dir := viper.GetString("directory")
 		pkg := viper.GetString("package")
 

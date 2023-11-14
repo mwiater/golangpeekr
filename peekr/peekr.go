@@ -212,7 +212,12 @@ func PackageFunctions(dir, pkgName string) (map[string][]FunctionInfo, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "EOF") {
+			return funcMap, nil
+		} else {
+			return nil, err
+		}
+
 	}
 
 	// Sort the functions within each group alphabetically
